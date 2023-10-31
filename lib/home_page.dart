@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:weather_app/models/weather.dart';
 import 'constans/constant_api.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, required this.title});
+
+  final String title;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -12,10 +15,21 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
-    Future<dynamic> festData() async {
+    Future<Weather?> festData() async {
       final dio = Dio();
       final Response = await dio.get(ApiConst.address);
-      return Response;
+      if (Response.statusCode == 200) {
+        final Weather weather = Weather(
+          id: Response.data['weather'][0]['id'],
+          main: Response.data['weather'][0]['main'],
+          description: Response.data['weather'][0]['description'],
+          icon: Response.data['weather'][0]['icon'],
+          city: Response.data['name'],
+          country: Response.data['sys']['country'],
+          // humidity: Response.data['main']['humidity'],
+        );
+        return weather;
+      }
     }
 
     @override
@@ -24,31 +38,37 @@ class _HomePageState extends State<HomePage> {
     }
 
     return Scaffold(
-      backgroundColor: Color.fromARGB(255, 8, 12, 46),
-      appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 90, 112, 182),
-        centerTitle: true,
-        title: Text(
-          'WEATHER APP',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          title: Text('Weather App'),
+          centerTitle: true,
         ),
-      ),
-      body: FutureBuilder(
-          future: festData(),
-          builder: (ctx, sn) {
-            return Padding(
-              padding: const EdgeInsets.all(30),
-              child: Center(
-                child: Text(
-                  sn.toString(),
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w200,
-                      fontSize: 20),
-                ),
-              ),
-            );
-          }),
-    );
+        body: Column(
+          children: [
+            Center(
+              child: FutureBuilder(
+                  future: festData(),
+                  builder: (ctx, sn) {
+                    if (sn.hasData) {
+                      return Column(
+                        children: [
+                          Text(sn.data!.id.toString()),
+                          Text(sn.data!.description),
+                          Text(sn.data!.main),
+                          Text(sn.data!.icon),
+                          Text(sn.data!.city),
+                          Text(sn.data!.country),
+                          // Text(sn.data!.humidity),
+                        ],
+                      );
+                    } else if (sn.hasError) {
+                      return Text(sn.error.toString());
+                    } else {
+                      return CircularProgressIndicator();
+                    }
+                  }),
+            ),
+          ],
+        ));
   }
 }
